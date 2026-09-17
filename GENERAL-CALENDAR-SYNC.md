@@ -1,94 +1,110 @@
-# General Calendar Sync Boundary — Fase 14
+# General Calendar Sync Boundary — Fase 17
 
 ## Tujuan
 
-Fase 14 menghubungkan contract repository kalender umum dengan remote data-source boundary.
+Fase 17 menambahkan adapter fitur kalender umum di atas generic Firebase boundary.
 
-Alur Android yang sekarang sudah terbentuk:
+Alur sekarang:
 
 ```text
-GeneralCalendarRemoteDataSource
-              ↓
-DefaultCalendarEventRepository
-              ↓
+FirebaseDocument
+      ↓
+GeneralCalendarFirebaseDocumentMapper
+      ↓
+GeneralCalendarRemoteItem
+      ↓
+GeneralCalendarPayloadMapper
+      ↓
 CalendarEvent
 ```
 
-Repository menerima rentang tanggal dari caller dan meneruskannya ke remote data source.
+Dengan pola ini, domain `CalendarEvent` tidak mengetahui bentuk envelope Firebase.
 
-## Kondisi remote saat ini
+## Field mapping
 
-`DefaultGeneralCalendarRemoteDataSource` masih mengembalikan:
+Adapter membaca field generik:
+
+| FirebaseDocument field | GeneralCalendarRemoteItem |
+|---|---|
+| `id` | `id` |
+| `dateIso` | `dateIso` |
+| `title` | `title` |
+| `description` | `description` |
+| `category` | `category` |
+| `isHoliday` | `isHoliday` |
+| `sourceUrl` | `sourceUrl` |
+
+`FirebaseDocument.id` digunakan sebagai fallback ketika field `id` kosong.
+
+Nilai boolean menerima bentuk:
 
 ```text
-emptyList()
+true / false
+1 / 0
+yes / no
+y / n
 ```
 
-Jadi Fase 14 **belum mengambil data internet** dan **belum menghubungkan provider nyata**.
+Nilai lain dianggap null dan kemudian mengikuti aturan `GeneralCalendarPayloadMapper`.
 
-Tidak ada:
+## Validasi
 
-- Google Calendar API
-- Firebase SDK
-- API key
-- credential
-- endpoint produksi
-- network client
+Validasi tanggal dan title tetap dilakukan oleh `GeneralCalendarPayloadMapper`.
+
+Dengan demikian:
+
+- tanggal ISO invalid ditolak;
+- title kosong ditolak;
+- field teks dinormalisasi;
+- `isHoliday` null menjadi false di mapper domain.
+
+## Kondisi Firebase
+
+Fase 17 belum mengaktifkan Firebase SDK atau network.
+
+Belum ditentukan:
+
+- Firebase project produksi;
+- collection produksi;
+- Firebase Rules;
+- credentials;
+- sinkronisasi server;
+- jadwal sync.
+
+Adapter hanya memetakan envelope generic ke model domain.
 
 ## Source flow yang tetap dikunci
 
 ```text
-Kalender umum Google / sumber kalender umum yang sesuai
+Sumber kalender umum / sumber resmi
                     ↓
               Sinkronisasi
                     ↓
                  Firebase
                     ↓
-                Android
+          FirebaseDocument
                     ↓
-        GeneralCalendarRemoteDataSource
+      GeneralCalendarFirebaseDocumentMapper
                     ↓
-        DefaultCalendarEventRepository
+          GeneralCalendarPayloadMapper
                     ↓
-             CalendarEvent
+              CalendarEvent
 ```
-
-Provider dan mekanisme sinkronisasi nyata tetap ditunda sampai schema produksi, Firebase project, payload, validasi, dan sumber resmi ditetapkan.
-
-## Dependency direction
-
-Domain:
-
-```text
-CalendarEvent
-CalendarEventRepository
-```
-
-Data:
-
-```text
-GeneralCalendarRemoteDataSource
-DefaultGeneralCalendarRemoteDataSource
-DefaultCalendarEventRepository
-```
-
-Repository bergantung pada contract remote, bukan sebaliknya.
 
 ## Guard
 
-Fase 14 tidak:
+Fase 17 tidak:
 
-- mengubah GregorianCalendarEngine
-- mengubah GregorianCalendarModels
-- mengubah HijriCalendarEngine
-- mengubah HijriCalendarModels
-- mengubah CalendarScreen
-- mengubah MainActivity
-- menambah dependency
-- menambah provider
-- menambah network client
-- menambah Firebase configuration
-- meng-hardcode daftar tanggal merah
-- mengaktifkan sinkronisasi nyata
-
-Fase 14 hanya menyelesaikan wiring internal antara remote boundary dan repository boundary.
+- menambah Firebase SDK;
+- menambah network client;
+- menambah API key;
+- menambah credential;
+- menentukan collection production;
+- mengubah FirebaseDynamicDataSource;
+- mengubah FirebaseDocument;
+- mengubah CalendarEvent;
+- mengubah repository contract;
+- mengubah Gregorian/Hijri engine;
+- mengubah CalendarScreen;
+- mengubah MainActivity;
+- menghardcode daftar tanggal merah.
