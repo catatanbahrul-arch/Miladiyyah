@@ -208,3 +208,27 @@ CachedCalendarEventRepositoryFactory
 Factory menerima `CalendarEventRepository` yang sudah ada sebagai source of truth. Factory tidak membuat Firebase/remote source baru dan tidak menentukan collection production.
 
 Fase 27 belum memanggil factory dari startup, UI, atau `CalendarScreen`.
+
+## Controlled cache activation boundary
+
+Fase 28 menyediakan policy aktivasi eksplisit:
+
+```text
+CalendarEventRepositoryActivation
+             │
+             ├── REMOTE_ONLY
+             │      ↓
+             │ existing CalendarEventRepository
+             │
+             └── REMOTE_WITH_LOCAL_FALLBACK
+                    ↓
+         CachedCalendarEventRepositoryFactory
+                    ↓
+         CachedCalendarEventRepository
+```
+
+`REMOTE_ONLY` tidak membuat cache layer baru.
+
+`REMOTE_WITH_LOCAL_FALLBACK` mendelegasikan composition ke factory Fase 27.
+
+Activation boundary ini **belum dipanggil** oleh startup, `MiladiyyahApp`, `MainActivity`, atau `CalendarScreen` pada Fase 28.
