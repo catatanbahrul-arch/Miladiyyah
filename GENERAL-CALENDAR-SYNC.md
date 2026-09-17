@@ -1,110 +1,94 @@
-# General Calendar Sync Boundary — Fase 17
+# General Calendar Sync Boundary — Fase 21
 
-## Tujuan
+## Runtime source wiring
 
-Fase 17 menambahkan adapter fitur kalender umum di atas generic Firebase boundary.
-
-Alur sekarang:
+Fase 21 menyediakan implementation:
 
 ```text
+GeneralCalendarRemoteDataSource
+          ↓
+FirebaseGeneralCalendarRemoteDataSource
+          ↓
+FirebaseRuntime
+          ↓
+FirestoreDynamicDataSource
+          ↓
 FirebaseDocument
-      ↓
-GeneralCalendarFirebaseDocumentMapper
-      ↓
+          ↓
 GeneralCalendarRemoteItem
-      ↓
+          ↓
 GeneralCalendarPayloadMapper
-      ↓
+          ↓
 CalendarEvent
 ```
 
-Dengan pola ini, domain `CalendarEvent` tidak mengetahui bentuk envelope Firebase.
+## Runtime activation
 
-## Field mapping
+Implementation ini membutuhkan:
 
-Adapter membaca field generik:
+- `Context`;
+- `collectionName`.
 
-| FirebaseDocument field | GeneralCalendarRemoteItem |
-|---|---|
-| `id` | `id` |
-| `dateIso` | `dateIso` |
-| `title` | `title` |
-| `description` | `description` |
-| `category` | `category` |
-| `isHoliday` | `isHoliday` |
-| `sourceUrl` | `sourceUrl` |
+`FirebaseRuntime.firestoreOrNull(context)` digunakan ketika `getEvents()` dipanggil.
 
-`FirebaseDocument.id` digunakan sebagai fallback ketika field `id` kosong.
-
-Nilai boolean menerima bentuk:
+Jika Firebase belum dikonfigurasi, source mengembalikan:
 
 ```text
-true / false
-1 / 0
-yes / no
-y / n
+emptyList()
 ```
 
-Nilai lain dianggap null dan kemudian mengikuti aturan `GeneralCalendarPayloadMapper`.
-
-## Validasi
-
-Validasi tanggal dan title tetap dilakukan oleh `GeneralCalendarPayloadMapper`.
-
-Dengan demikian:
-
-- tanggal ISO invalid ditolak;
-- title kosong ditolak;
-- field teks dinormalisasi;
-- `isHoliday` null menjadi false di mapper domain.
-
-## Kondisi Firebase
-
-Fase 17 belum mengaktifkan Firebase SDK atau network.
-
-Belum ditentukan:
-
-- Firebase project produksi;
-- collection produksi;
-- Firebase Rules;
-- credentials;
-- sinkronisasi server;
-- jadwal sync.
-
-Adapter hanya memetakan envelope generic ke model domain.
-
-## Source flow yang tetap dikunci
+Jika `collectionName` kosong atau rentang tanggal invalid, source juga mengembalikan:
 
 ```text
-Sumber kalender umum / sumber resmi
-                    ↓
-              Sinkronisasi
-                    ↓
-                 Firebase
-                    ↓
-          FirebaseDocument
-                    ↓
-      GeneralCalendarFirebaseDocumentMapper
-                    ↓
-          GeneralCalendarPayloadMapper
-                    ↓
-              CalendarEvent
+emptyList()
 ```
+
+## Date filtering
+
+Firestore document diambil dari collection yang diberikan saat object dibuat.
+
+Setelah mapping dan validasi domain, event difilter sehingga hanya event dalam:
+
+```text
+startDate <= date <= endDate
+```
+
+yang dikembalikan.
+
+## Collection policy
+
+Fase 21 **tidak** menentukan nama collection production.
+
+Nama collection diberikan melalui constructor agar:
+
+- tidak hardcode;
+- bisa ditetapkan setelah schema production disepakati;
+- generic repository contract tetap bersih.
+
+## Default startup behavior
+
+Fase 21 tidak mengubah `DefaultCalendarEventRepository`.
+
+Artinya source Firebase ini belum menjadi jalur startup default aplikasi.
+
+Penggunaan production nanti harus dilakukan secara eksplisit setelah:
+
+- `google-services.json` tersedia;
+- Firebase project disepakati;
+- Firestore database aktif;
+- collection production ditetapkan;
+- Security Rules ditetapkan;
+- schema event dikunci.
 
 ## Guard
 
-Fase 17 tidak:
+Fase 21 tidak:
 
-- menambah Firebase SDK;
-- menambah network client;
-- menambah API key;
-- menambah credential;
-- menentukan collection production;
-- mengubah FirebaseDynamicDataSource;
-- mengubah FirebaseDocument;
-- mengubah CalendarEvent;
-- mengubah repository contract;
-- mengubah Gregorian/Hijri engine;
+- menentukan collection name;
+- hardcode tanggal merah;
+- menyimpan credential;
+- mengubah GregorianCalendarEngine;
+- mengubah HijriCalendarEngine;
 - mengubah CalendarScreen;
 - mengubah MainActivity;
-- menghardcode daftar tanggal merah.
+- mengubah default repository startup.
