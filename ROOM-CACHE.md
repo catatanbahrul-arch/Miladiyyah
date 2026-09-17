@@ -132,3 +132,32 @@ Aturan mapping:
 - Entity -> Domain mempertahankan field domain yang tersedia.
 - Batch mapping tersedia untuk list.
 - Mapper tidak melakukan I/O, database access, network access, atau startup wiring.
+
+## Room local data source boundary
+
+Fase 25 menyediakan boundary data lokal:
+
+```text
+CalendarEventLocalDataSource
+          ↑
+RoomCalendarEventLocalDataSource
+          ↓
+CalendarEventDao
+          ↕
+CalendarEventRoomMapper
+          ↕
+CalendarEventEntity
+```
+
+`CalendarEventLocalDataSource` hanya mengenal model domain `CalendarEvent` dan `LocalDate`.
+
+Implementasi Room:
+
+- membaca cache berdasarkan rentang tanggal;
+- menulis batch event ke cache;
+- menghapus event berdasarkan rentang tanggal;
+- membersihkan seluruh cache;
+- menolak rentang tanggal terbalik dengan hasil/no-op aman;
+- menggunakan `CalendarEventRoomMapper` untuk konversi domain/entity.
+
+Fase 25 belum menghubungkan local data source ke `CalendarEventRepository`, Firebase, startup, atau UI.
