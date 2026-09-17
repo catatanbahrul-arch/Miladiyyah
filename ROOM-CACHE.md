@@ -187,3 +187,24 @@ Aturan:
 - Fase 26 belum mengaktifkan decorator ini pada startup/UI.
 - Fase 26 belum mengubah `DefaultCalendarEventRepository`.
 - Fase 26 belum mengubah Firebase source.
+
+## Cache composition factory boundary
+
+Fase 27 menyediakan factory eksplisit untuk merangkai cache layer:
+
+```text
+existing CalendarEventRepository
+            ↓
+CachedCalendarEventRepositoryFactory
+            ├── RoomDatabaseProvider
+            │       ↓
+            │   CalendarEventDao
+            │       ↓
+            │   RoomCalendarEventLocalDataSource
+            ↓
+     CachedCalendarEventRepository
+```
+
+Factory menerima `CalendarEventRepository` yang sudah ada sebagai source of truth. Factory tidak membuat Firebase/remote source baru dan tidak menentukan collection production.
+
+Fase 27 belum memanggil factory dari startup, UI, atau `CalendarScreen`.
