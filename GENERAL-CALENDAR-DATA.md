@@ -1,42 +1,28 @@
-# General Calendar Data — Fase 12
+# General Calendar Data — Fase 15
 
 ## Tujuan
 
-Fase 12 hanya menyiapkan contract/domain foundation untuk data:
+Fase 15 menambahkan boundary untuk normalisasi payload kalender umum sebelum masuk ke domain `CalendarEvent`.
 
-- hari libur
-- tanggal merah
-- peringatan umum
-
-Kalender Gregorian tetap menjadi mesin penentu tahun, bulan, tanggal, hari, dan struktur kalender.
-
-## Source Lock
-
-Sesuai rencana sumber data project, data libur/peringatan umum nantinya berasal dari:
-
-**Kalender umum Google / sumber kalender umum resmi yang ditetapkan.**
-
-Jalur yang direncanakan:
+Alur sekarang:
 
 ```text
-Kalender umum / sumber resmi
-            ↓
-        Sinkronisasi
-            ↓
-         Firebase
-            ↓
-         Android
-            ↓
-          Kalender
+Remote payload
+      ↓
+GeneralCalendarRemoteItem
+      ↓
+GeneralCalendarPayloadMapper
+      ↓
+CalendarEvent
+      ↓
+CalendarEventRepository
 ```
 
-Pada Fase 12 source eksternal tersebut **belum dihubungkan** karena provider, endpoint, schema produksi, dan kredensial belum dikunci.
+## Provider-neutral
 
-## Contract
+`GeneralCalendarRemoteItem` bukan DTO milik Google Calendar, Firebase, atau provider tertentu.
 
-`CalendarEvent` menyimpan metadata event tanpa menanam daftar tanggal tahunan ke Kotlin.
-
-Field:
+Field payload yang disiapkan:
 
 - `id`
 - `dateIso`
@@ -46,25 +32,33 @@ Field:
 - `isHoliday`
 - `sourceUrl`
 
-Repository:
+## Normalisasi
 
-`CalendarEventRepository.getEvents(startDate, endDate)`
+Mapper melakukan:
 
-Implementasi default saat ini mengembalikan list kosong.
+1. parsing `dateIso` sebagai ISO local date;
+2. trim whitespace pada text field;
+3. membuang `id`, `description`, `category`, dan `sourceUrl` yang kosong;
+4. menggunakan `false` jika `isHoliday` null;
+5. menolak item dengan tanggal tidak valid;
+6. menolak item tanpa title;
+7. menghasilkan `CalendarEvent` yang bersih.
+
+`mapAll()` membuang item yang tidak valid dengan `mapNotNull`.
 
 ## Guard
 
-Fase 12 tidak:
+Fase 15 tidak:
 
-- mengubah GregorianCalendarEngine
-- mengubah GregorianCalendarModels
-- mengubah HijriCalendarEngine
-- mengubah HijriCalendarModels
-- mengubah MainActivity
-- mengubah UI kalender
-- menambah dependency
-- menambah API/credentials
-- menambah Firebase configuration
-- meng-hardcode daftar tanggal merah
+- mengakses internet;
+- memanggil Google Calendar;
+- memanggil Firebase;
+- menyimpan API key/credential;
+- meng-hardcode tanggal merah;
+- mengubah GregorianCalendarEngine;
+- mengubah HijriCalendarEngine;
+- mengubah CalendarScreen;
+- mengubah MainActivity;
+- mengubah repository interface.
 
-Fase ini hanya menyiapkan batas domain/data untuk tahap sinkronisasi berikutnya.
+Mapper hanya menjadi batas translasi dari data remote generik ke model domain.
