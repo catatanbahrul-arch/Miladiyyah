@@ -1,85 +1,80 @@
-# Firebase Project Configuration — Fase 19
+# Firebase Project Configuration — Fase 20
 
-## Tujuan
+## Runtime boundary
 
-Fase 19 menyiapkan batas konfigurasi project Firebase tanpa memalsukan konfigurasi.
-
-Google Services Gradle plugin yang digunakan:
+Fase 20 menambahkan boundary runtime eksplisit:
 
 ```text
-com.google.gms.google-services
-version 4.5.0
+FirebaseRuntime
+      ↓
+FirebaseApp yang sudah terkonfigurasi
+      ↓
+FirebaseFirestore
 ```
 
-Plugin dideklarasikan di root dengan:
+API yang tersedia:
 
 ```text
-apply false
+firestoreOrNull(context)
+isConfigured(context)
 ```
 
-Pada module `app`, plugin hanya diterapkan ketika file:
+## Runtime behavior
+
+`FirebaseRuntime` tidak dipanggil dari:
+
+- `MainActivity`
+- `MiladiyyahApp`
+- `CalendarScreen`
+- startup application flow
+
+Karena itu Fase 20 tidak menambahkan network access saat aplikasi dibuka.
+
+`firestoreOrNull(context)`:
+
+1. membaca FirebaseApp yang sudah terdaftar pada context;
+2. jika belum ada, mengembalikan `null`;
+3. jika tersedia, membuat akses ke `FirebaseFirestore` untuk app tersebut.
+
+Mendapatkan instance Firestore sendiri bukan pembacaan koleksi. Network baru terjadi ketika operasi Firestore dipanggil oleh caller.
+
+## Configuration state
+
+Saat ini:
 
 ```text
-app/google-services.json
+app/google-services.json = belum tersedia
 ```
 
-benar-benar tersedia.
+Maka runtime boundary tetap tidak aktif sampai Firebase project dikonfigurasi.
 
-## Mengapa guarded activation
+Fase 20 tidak membuat file konfigurasi palsu.
 
-Tanpa file konfigurasi Firebase yang benar, project tidak boleh membuat konfigurasi palsu hanya agar build terlihat berhasil.
+## Production activation
 
-Saat `google-services.json` belum tersedia:
+Sebelum production activation, perlu ditetapkan:
 
-- plugin tidak diaktifkan;
-- Firebase project belum dipilih;
-- tidak ada credential/config produksi;
-- aplikasi tetap dapat dibuild.
+- Firebase project aplikasi;
+- `google-services.json` yang sesuai package;
+- Firestore database;
+- Security Rules;
+- authentication policy bila diperlukan;
+- collection/schema tiap fitur;
+- sync/cache policy.
 
-Saat file konfigurasi sudah tersedia pada fase aktivasi, plugin dapat memproses file tersebut untuk package aplikasi yang sesuai.
+## Guard
 
-## Config boundary
+Fase 20 tidak:
 
-Lokasi yang disiapkan:
+- mengubah MainActivity;
+- mengubah MiladiyyahApp;
+- mengubah CalendarScreen;
+- mengubah GregorianCalendarEngine;
+- mengubah HijriCalendarEngine;
+- mengubah FirestoreDynamicDataSource;
+- menentukan collection;
+- menyimpan credential;
+- membaca data kalender;
+- mengaktifkan startup sync.
 
-```text
-app/google-services.json
-```
-
-File tersebut tidak dilacak Git oleh project policy saat ini.
-
-Konfigurasi produksi harus berasal dari Firebase project aplikasi yang benar, bukan file contoh.
-
-## Status Fase 19
-
-Fase ini belum:
-
-- memasang `google-services.json`;
-- mengaktifkan Firebase project produksi;
-- menentukan Firebase project ID;
-- menentukan collection Firestore produksi;
-- menentukan Firestore Security Rules;
-- mengaktifkan authentication;
-- mengaktifkan network startup;
-- mengubah UI;
-- mengubah domain.
-
-## Hubungan dengan Fase 18
-
-Fase 18 menyediakan:
-
-```text
-FirestoreDynamicDataSource
-```
-
-Fase 19 menyiapkan:
-
-```text
-Google Services configuration boundary
-```
-
-Sehingga aktivasi Firebase produksi dapat dilakukan terpisah dan terkontrol pada fase berikutnya.
-
-## Sumber teknis
-
-Firebase Android setup mendokumentasikan penggunaan Google Services Gradle plugin bersama `google-services.json`. Plugin memproses konfigurasi client berdasarkan package name aplikasi. Versi plugin yang digunakan pada fase ini adalah 4.5.0.
+Fase berikutnya dapat menggunakan `FirebaseRuntime.firestoreOrNull(context)` secara eksplisit dari adapter/provider yang membutuhkan Firebase.
