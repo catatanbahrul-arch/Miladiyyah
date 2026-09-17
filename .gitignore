@@ -20,3 +20,6 @@ local.properties
 # OS files
 .DS_Store
 Thumbs.db
+# Firebase local project config
+app/google-services.json
+app/src/*/google-services.json

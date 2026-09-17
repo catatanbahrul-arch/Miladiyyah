@@ -46,3 +46,7 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
+// FASE19_GOOGLE_SERVICES_GUARD
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
