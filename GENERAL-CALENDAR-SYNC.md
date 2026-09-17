@@ -1,16 +1,41 @@
-# General Calendar Sync Boundary — Fase 13
+# General Calendar Sync Boundary — Fase 14
 
 ## Tujuan
 
-Fase 13 menyiapkan batas data untuk kalender umum:
+Fase 14 menghubungkan contract repository kalender umum dengan remote data-source boundary.
 
-- hari libur
-- tanggal merah
-- peringatan umum
+Alur Android yang sekarang sudah terbentuk:
 
-Fase ini belum menghubungkan provider nyata.
+```text
+GeneralCalendarRemoteDataSource
+              ↓
+DefaultCalendarEventRepository
+              ↓
+CalendarEvent
+```
 
-## Source flow yang dikunci
+Repository menerima rentang tanggal dari caller dan meneruskannya ke remote data source.
+
+## Kondisi remote saat ini
+
+`DefaultGeneralCalendarRemoteDataSource` masih mengembalikan:
+
+```text
+emptyList()
+```
+
+Jadi Fase 14 **belum mengambil data internet** dan **belum menghubungkan provider nyata**.
+
+Tidak ada:
+
+- Google Calendar API
+- Firebase SDK
+- API key
+- credential
+- endpoint produksi
+- network client
+
+## Source flow yang tetap dikunci
 
 ```text
 Kalender umum Google / sumber kalender umum yang sesuai
@@ -21,44 +46,37 @@ Kalender umum Google / sumber kalender umum yang sesuai
                     ↓
                 Android
                     ↓
-            CalendarEvent
+        GeneralCalendarRemoteDataSource
+                    ↓
+        DefaultCalendarEventRepository
+                    ↓
+             CalendarEvent
 ```
 
-Sumber provider tetap provider-neutral pada layer Android karena provider/endpoint produksinya belum dikunci.
+Provider dan mekanisme sinkronisasi nyata tetap ditunda sampai schema produksi, Firebase project, payload, validasi, dan sumber resmi ditetapkan.
 
-## Android boundary
+## Dependency direction
 
-`GeneralCalendarRemoteDataSource` adalah kontrak yang akan digunakan Android untuk membaca event kalender umum yang sudah didistribusikan oleh remote layer.
-
-Method:
+Domain:
 
 ```text
-getEvents(startDate, endDate)
+CalendarEvent
+CalendarEventRepository
 ```
 
-Return:
+Data:
 
 ```text
-List<CalendarEvent>
+GeneralCalendarRemoteDataSource
+DefaultGeneralCalendarRemoteDataSource
+DefaultCalendarEventRepository
 ```
 
-Implementasi default saat ini selalu mengembalikan list kosong.
-
-Itu disengaja agar:
-
-- tidak ada data palsu
-- tidak ada endpoint fiktif
-- tidak ada kredensial di APK
-- tidak ada dependency Firebase sebelum waktunya
-- tidak ada tanggal merah hardcode
-
-## Fase berikutnya
-
-Implementasi nyata dapat dibuat setelah provider produksi, Firebase project/schema, mekanisme sinkronisasi, dan validasi payload ditetapkan.
+Repository bergantung pada contract remote, bukan sebaliknya.
 
 ## Guard
 
-Fase 13 tidak:
+Fase 14 tidak:
 
 - mengubah GregorianCalendarEngine
 - mengubah GregorianCalendarModels
@@ -67,8 +85,10 @@ Fase 13 tidak:
 - mengubah CalendarScreen
 - mengubah MainActivity
 - menambah dependency
-- menambah Firebase SDK
-- menambah API client
-- menambah daftar tanggal merah hardcode
+- menambah provider
+- menambah network client
+- menambah Firebase configuration
+- meng-hardcode daftar tanggal merah
+- mengaktifkan sinkronisasi nyata
 
-Fase 13 hanya membuat data boundary yang dapat dipakai implementasi sinkronisasi nyata pada fase selanjutnya.
+Fase 14 hanya menyelesaikan wiring internal antara remote boundary dan repository boundary.
