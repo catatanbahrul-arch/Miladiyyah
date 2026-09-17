@@ -1,3 +1,22 @@
+# Android / Gradle
+.gradle/
+build/
+**/build/
+
+# Local Android SDK configuration
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# Generated APK / AAB
+*.apk
+*.aab
 
 # Local development / audit logs
 .audit/
+
+# OS files
+.DS_Store
+Thumbs.db
