@@ -161,3 +161,29 @@ Implementasi Room:
 - menggunakan `CalendarEventRoomMapper` untuk konversi domain/entity.
 
 Fase 25 belum menghubungkan local data source ke `CalendarEventRepository`, Firebase, startup, atau UI.
+
+## Repository cache activation boundary
+
+Fase 26 menyediakan decorator repository eksplisit:
+
+```text
+CalendarEventRepository
+        ↑
+CachedCalendarEventRepository
+        ├── sourceRepository
+        └── CalendarEventLocalDataSource
+                  ↓
+             Room cache
+```
+
+Aturan:
+
+- `sourceRepository` tetap menjadi source of truth.
+- Saat source berhasil, hasil remote dikembalikan ke caller.
+- Hasil remote non-empty di-upsert ke cache.
+- Hasil remote empty membersihkan cache pada rentang yang sama agar cache tidak mempertahankan event lama untuk range tersebut.
+- Saat source melempar `Exception`, repository mencoba membaca local cache.
+- Rentang tanggal terbalik menghasilkan `emptyList()`.
+- Fase 26 belum mengaktifkan decorator ini pada startup/UI.
+- Fase 26 belum mengubah `DefaultCalendarEventRepository`.
+- Fase 26 belum mengubah Firebase source.
