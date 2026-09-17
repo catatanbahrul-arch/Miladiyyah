@@ -92,3 +92,32 @@ Fase 21 tidak:
 - mengubah CalendarScreen;
 - mengubah MainActivity;
 - mengubah default repository startup.
+
+## Fase 22 — Repository Activation Boundary
+
+Fase 22 menambahkan factory eksplisit:
+
+```text
+FirebaseGeneralCalendarRepositoryFactory
+              ↓
+DefaultCalendarEventRepository
+              ↓
+FirebaseGeneralCalendarRemoteDataSource
+```
+
+Factory menerima:
+
+```text
+Context
+collectionName
+```
+
+dan tidak menyimpan nama collection produksi.
+
+Pemanggilan factory harus dilakukan oleh caller yang memang membutuhkan Firebase repository. Factory tidak dipanggil dari `MainActivity`, `MiladiyyahApp`, atau `CalendarScreen`.
+
+`collectionName` kosong menghasilkan `null`.
+
+Fase 22 tidak mengubah contract `CalendarEventRepository` dan tidak mengubah default repository. Dengan demikian default application path tetap aman tanpa aktivasi Firebase.
+
+Fase berikutnya dapat menetapkan composition root setelah konfigurasi Firebase dan collection production benar-benar tersedia.
