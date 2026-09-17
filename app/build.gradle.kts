@@ -27,6 +27,9 @@ android {
 }
 
 dependencies {
+    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
+    implementation("com.google.firebase:firebase-firestore")
+
     val composeBom = platform(
         "androidx.compose:compose-bom:2026.08.00"
     )

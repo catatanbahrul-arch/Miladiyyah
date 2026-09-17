@@ -1,78 +1,87 @@
-# Firebase Dynamic Data Foundation — Fase 16
+# Firebase Dynamic Data Foundation — Fase 18
 
-## Tujuan
+## Status
 
-Fase 16 menyiapkan **boundary** untuk data dinamis yang pada arsitektur final akan didistribusikan melalui Firebase.
-
-Fase ini **belum memasang Firebase SDK** dan belum membuat konfigurasi project Firebase.
-
-## Boundary
-
-Struktur:
+Fase 18 mengaktifkan dependency Cloud Firestore dan menyediakan implementation nyata dari:
 
 ```text
 FirebaseDynamicDataSource
           ↓
+FirestoreDynamicDataSource
+          ↓
 FirebaseDocument
-          ↓
-Mapper / Repository spesifik fitur
-          ↓
-Domain model
 ```
 
-`FirebaseDocument` adalah envelope generik:
-
-- `id`
-- `fields`
-
-Core boundary ini sengaja tidak mengetahui schema kalender, prayer schedule, koreksi Hijri, atau data lain.
-
-## Implementasi default
-
-`DefaultFirebaseDynamicDataSource` saat ini mengembalikan:
+Dependency yang digunakan:
 
 ```text
-emptyList()
+Firebase Android BoM 34.19.0
+Cloud Firestore main module
 ```
 
-Implementasi kosong ini menjaga agar aplikasi belum melakukan network access sebelum:
+Firebase Android BoM digunakan untuk mengelola kompatibilitas versi dependency Firebase. Modul KTX tidak digunakan.
 
-- Firebase project ditetapkan;
-- schema koleksi ditetapkan;
-- payload production disepakati;
-- rules/security ditetapkan;
-- sync strategy ditetapkan;
-- validasi data ditetapkan.
+## Runtime activation guard
 
-## Rencana penggunaan sesuai source mapping
+Fase 18 **belum memasang**:
 
-Firebase hanya dipakai untuk dynamic sync yang memang sudah ditetapkan pada arsitektur project, termasuk:
+- `google-services` Gradle plugin;
+- `google-services.json`;
+- credential produksi;
+- collection production;
+- Firebase Rules.
 
-- koreksi Hijri Kemenag;
-- kalender Kemenag;
-- jadwal shalat yang telah disinkronkan;
-- dynamic data lain yang memang ditetapkan menggunakan Firebase.
+Selain itu, `DefaultFirebaseDynamicDataSource` tetap menjadi default implementation pada factory/repository yang sudah ada. Dengan demikian, menambahkan SDK tidak otomatis membuat CalendarScreen melakukan network access.
 
-Google Sheets tetap menjadi CMS utama untuk data resmi Wahidiyah dan Google Apps Script menjadi gateway JSON untuk data tersebut.
+`FirestoreDynamicDataSource` harus menerima `FirebaseFirestore` melalui constructor sehingga konfigurasi/activation dapat dilakukan secara eksplisit pada fase berikutnya.
 
-Room tetap menjadi cache lokal, bukan source of truth.
+## Firestore mapping
+
+Untuk setiap Firestore document:
+
+```text
+document.id
+document.data
+```
+
+dipetakan menjadi:
+
+```text
+FirebaseDocument(
+    id = document.id,
+    fields = document.data -> String?
+)
+```
+
+Adapter tidak mengetahui schema `CalendarEvent`.
+
+## Security
+
+Fase 18 belum menentukan:
+
+- Firebase project;
+- authentication;
+- Firestore Security Rules;
+- collection name produksi;
+- cache policy;
+- retry policy;
+- sync schedule.
+
+Hal tersebut harus ditetapkan sebelum production activation.
 
 ## Guard
 
-Fase 16 tidak:
+Fase 18 tidak:
 
-- menambah Firebase SDK;
-- menambah `google-services.json`;
-- menyimpan credential;
-- menambah endpoint;
-- membuka network;
-- menentukan schema koleksi General Calendar;
-- menentukan schema Prayer;
-- menentukan schema Hijri;
+- menghardcode tanggal merah;
 - mengubah GregorianCalendarEngine;
 - mengubah HijriCalendarEngine;
 - mengubah CalendarScreen;
 - mengubah MainActivity;
-- mengubah repository/domain contract yang sudah ada.
+- menentukan collection produksi;
+- menyimpan credential;
+- mengaktifkan default network path pada aplikasi.
 
-Fase berikutnya dapat menentukan schema Firebase spesifik untuk fitur tertentu tanpa mengotori boundary generic ini.
+## Sumber resmi teknis
+
+Firebase merekomendasikan penggunaan Firebase Android BoM dan modul utama Cloud Firestore. Modul KTX tidak lagi menerima rilis baru dan tidak lagi menjadi bagian BoM terbaru.
