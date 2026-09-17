@@ -110,3 +110,25 @@ tanpa mengubah kontrak domain.
 ## Safety rules
 
 Tidak ada credential, endpoint, spreadsheet ID, Firebase collection, atau data kalender production yang disimpan di Room foundation ini.
+
+## Mapping boundary
+
+`CalendarEventRoomMapper` menjadi boundary eksplisit antara domain dan Room:
+
+```text
+CalendarEvent (domain)
+        ↕
+CalendarEventRoomMapper
+        ↕
+CalendarEventEntity (Room)
+```
+
+Aturan mapping:
+
+- Domain -> Entity memakai `toEntityOrNull()`.
+- `id`, `dateIso`, atau `title` null/kosong tidak dimasukkan ke cache.
+- String dipangkas (`trim`) pada boundary data.
+- Blank optional string dinormalisasi menjadi `null`.
+- Entity -> Domain mempertahankan field domain yang tersedia.
+- Batch mapping tersedia untuk list.
+- Mapper tidak melakukan I/O, database access, network access, atau startup wiring.
